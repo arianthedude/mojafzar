@@ -1,7 +1,13 @@
 {
+  "main": "main.js",
   "dependencies": {
     "electron": "^26",
     "electron-store": "^11.0.2"
+  },
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
   },
   "devDependencies": {
     "electron-builder": "^26.0.12"

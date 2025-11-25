@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>ورود موفق</title>
+  <link rel="stylesheet" href="main.css">
+</head>
+<body>
+  <div class="container success">
+    <h1>ورود موفقیت‌آمیز!</h1>
+    <p id="info">اطلاعات ورود شما در اینجا نمایش داده می‌شود.</p>
+    <button id="back">بازگشت به تنظیمات</button>
+  </div>
+
+  <script>
+    const infoEl = document.getElementById('info');
+    const backBtn = document.getElementById('back');
+
+    // Show the success info sent from main
+    window.electronAPI.onShowSuccess((cfg) => {
+      infoEl.innerText = `IP: ${cfg.ip}\nنام کاربری: ${cfg.username}\nرمز عبور: ${cfg.password}`;
+    });
+
+    // Back button to settings
+    backBtn.addEventListener('click', () => {
+      window.electronAPI.showSettings();
+    });
+  </script>
+</body>
+</html>
