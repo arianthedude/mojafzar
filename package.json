@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "electron": "^26",
+    "electron-store": "^11.0.2"
+  },
+  "devDependencies": {
+    "electron-builder": "^26.0.12"
+  }
+}
