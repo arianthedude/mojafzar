@@ -62,7 +62,6 @@ function setLoading(state) {
 saveOnlyBtn.addEventListener("click", async () => {
   if (loading) return;
   const ip = ipInput.value;
-  if (!validateIP(ip)) return showMsg("IP نامعتبر است");
 
   setLoading(true);
   await window.electronAPI.saveConfig({
@@ -78,7 +77,6 @@ saveOnlyBtn.addEventListener("click", async () => {
 saveOpenBtn.addEventListener("click", async () => {
   if (loading) return;
   const ip = ipInput.value;
-  if (!validateIP(ip)) return showMsg("IP نامعتبر است");
 
   setLoading(true);
   await window.electronAPI.saveConfig({

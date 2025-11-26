@@ -69,13 +69,34 @@ async function loadURLWithTimeout(view, url, timeout = 5000) {
 }
 
 ipcMain.handle("open-url", async (event, cfg) => {
-  const testUrl = `http://${cfg.ip}/s/?mmk&u=${encodeURIComponent(
-    cfg.username
-  )}&p=${encodeURIComponent(cfg.password)}`;
+  const { ip, username, password } = cfg;
 
-  const finalUrl = `http://iptv.moojafzar.com/s/?mmk&u=${encodeURIComponent(
-    cfg.username
-  )}&p=${encodeURIComponent(cfg.password)}`;
+  if (!ip) {
+    return { error: "No IP or URL provided" };
+  }
+
+  // Ensure URL has protocol
+  let baseUrl = ip.startsWith("http://") || ip.startsWith("https://") ? ip : `http://${ip}`;
+
+  let urlObj;
+  try {
+    urlObj = new URL(baseUrl);
+  } catch (e) {
+    return { error: "Invalid IP or URL" };
+  }
+
+  // Build query string
+  // Build URL correctly
+urlObj.pathname = "/s/";     // path
+urlObj.search = "?mmk";      // query string
+if (username && password) {
+  urlObj.search += `&u=${encodeURIComponent(username)}&p=${encodeURIComponent(password)}`;
+}
+
+const finalUrl = urlObj.toString();
+console.log("Final URL:", finalUrl);
+
+
 
   try {
     // Remove old view if exists
@@ -84,7 +105,7 @@ ipcMain.handle("open-url", async (event, cfg) => {
       view = null;
     }
 
-    // Create hidden BrowserView just to test server response
+    // Hidden BrowserView to test server response
     view = new BrowserView({
       webPreferences: {
         nodeIntegration: false,
@@ -95,29 +116,27 @@ ipcMain.handle("open-url", async (event, cfg) => {
     mainWindow.setBrowserView(view);
     view.setBounds({ x: 0, y: 0, width: 0, height: 0 }); // hidden
 
-    // Timeout + fail listener
     const failPromise = new Promise((_, reject) => {
-      view.webContents.once("did-fail-load", (event, code, desc, url) => {
+      view.webContents.once("did-fail-load", (event, code, desc) => {
         reject(new Error(`Failed to load server: ${desc}`));
       });
     });
 
-    // Try loading server URL
     await Promise.race([
-      view.webContents.loadURL(testUrl),
+      view.webContents.loadURL(finalUrl),
       failPromise,
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error("Server timeout after 5 seconds")), 5000)
       ),
     ]);
 
-    // Connection OK → remove BrowserView
+    // Remove hidden BrowserView
     if (view && !view.webContents.isDestroyed()) {
       mainWindow.removeBrowserView(view);
       view = null;
     }
 
-    // Now redirect the REAL window
+    // Load the actual window
     await mainWindow.loadURL(finalUrl);
 
     return { ok: true, redirect: finalUrl };
