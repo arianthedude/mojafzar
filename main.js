@@ -140,6 +140,33 @@ ipcMain.handle("open-url", async (event, cfg) => {
   }
 });
 
+let keySequence = [];
+const secretSequence = [
+  "ArrowUp","ArrowUp","ArrowUp","ArrowUp","ArrowUp",
+  "ArrowUp","ArrowUp","ArrowUp","ArrowUp","Escape"
+];
+
+app.on("browser-window-focus", () => {
+  mainWindow.webContents.on("before-input-event", (event, input) => {
+    keySequence.push(input.key);
+
+    if (keySequence.length > secretSequence.length)
+      keySequence.shift();
+
+    if (secretSequence.every((k, i) => k === keySequence[i])) {
+      console.log("SECRET COMBO DETECTED → OPEN SETTINGS");
+      keySequence = [];
+
+      if (view && !view.webContents.isDestroyed()) {
+        mainWindow.removeBrowserView(view);
+        view = null;
+      }
+
+      mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
+    }
+  });
+});
+
 // -------------------- Show settings screen --------------------
 ipcMain.on("show-settings", () => {
   if (view && !view.webContents.isDestroyed()) {

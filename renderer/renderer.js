@@ -1,9 +1,9 @@
-const ipInput = document.getElementById('ip');
-const userInput = document.getElementById('user');
-const passInput = document.getElementById('pass');
-const saveOpenBtn = document.getElementById('saveOpen');
-const saveOnlyBtn = document.getElementById('saveOnly');
-const msg = document.getElementById('msg');
+const ipInput = document.getElementById("ip");
+const userInput = document.getElementById("user");
+const passInput = document.getElementById("pass");
+const saveOpenBtn = document.getElementById("saveOpen");
+const saveOnlyBtn = document.getElementById("saveOnly");
+const msg = document.getElementById("msg");
 
 let nineCount = 0;
 let loading = false;
@@ -11,7 +11,7 @@ let loading = false;
 // Validate IP
 function validateIP(ip) {
   if (!ip) return false;
-  const parts = ip.trim().split('.');
+  const parts = ip.trim().split(".");
   if (parts.length !== 4) return false;
   for (const p of parts) {
     if (!/^\d+$/.test(p)) return false;
@@ -21,19 +21,35 @@ function validateIP(ip) {
   return true;
 }
 
+let sequence = [];
+const secretCode = [
+  "ArrowUp","ArrowUp","ArrowUp","ArrowUp","ArrowUp",
+  "ArrowUp","ArrowUp","ArrowUp","ArrowUp","Escape"
+];
+
+window.addEventListener("keydown", (e) => {
+  sequence.push(e.key);
+  if (sequence.length > secretCode.length) sequence.shift();
+
+  if (secretCode.every((v, i) => v === sequence[i])) {
+    window.electronAPI.showSettings();
+    sequence = [];
+  }
+});
+
 // Load saved config
 async function loadConfig() {
   const cfg = await window.electronAPI.getConfig();
   if (cfg) {
-    ipInput.value = cfg.ip || '';
-    userInput.value = cfg.username || '';
-    passInput.value = cfg.password || '';
+    ipInput.value = cfg.ip || "";
+    userInput.value = cfg.username || "";
+    passInput.value = cfg.password || "";
   }
 }
 
 function showMsg(t) {
   msg.innerText = t;
-  setTimeout(() => (msg.innerText = ''), 4000);
+  setTimeout(() => (msg.innerText = ""), 4000);
 }
 
 function setLoading(state) {
@@ -43,10 +59,10 @@ function setLoading(state) {
 }
 
 // Save only
-saveOnlyBtn.addEventListener('click', async () => {
+saveOnlyBtn.addEventListener("click", async () => {
   if (loading) return;
   const ip = ipInput.value;
-  if (!validateIP(ip)) return showMsg('IP نامعتبر است');
+  if (!validateIP(ip)) return showMsg("IP نامعتبر است");
 
   setLoading(true);
   await window.electronAPI.saveConfig({
@@ -55,14 +71,14 @@ saveOnlyBtn.addEventListener('click', async () => {
     password: passInput.value,
   });
   setLoading(false);
-  showMsg('ذخیره شد');
+  showMsg("ذخیره شد");
 });
 
 // Save and open
-saveOpenBtn.addEventListener('click', async () => {
+saveOpenBtn.addEventListener("click", async () => {
   if (loading) return;
   const ip = ipInput.value;
-  if (!validateIP(ip)) return showMsg('IP نامعتبر است');
+  if (!validateIP(ip)) return showMsg("IP نامعتبر است");
 
   setLoading(true);
   await window.electronAPI.saveConfig({
@@ -82,15 +98,15 @@ saveOpenBtn.addEventListener('click', async () => {
       await window.electronAPI.showError(result.error);
     }
   } catch (err) {
-    await window.electronAPI.showError(err.message || 'Unknown error');
+    await window.electronAPI.showError(err.message || "Unknown error");
   } finally {
     setLoading(false);
   }
 });
 
 // Nine key combo to show settings
-window.addEventListener('keydown', (e) => {
-  if (e.key === '9') {
+window.addEventListener("keydown", (e) => {
+  if (e.key === "9") {
     nineCount++;
     if (nineCount >= 3) {
       window.electronAPI.showSettings();
@@ -103,14 +119,14 @@ window.addEventListener('keydown', (e) => {
 
 // Show settings screen
 window.electronAPI.onShowSettingsScreen(() => {
-  showMsg(' ');
+  showMsg(" ");
 });
 
 // Show success screen
 window.electronAPI.onShowSuccess((cfg) => {
   showMsg(`ورود موفق!\nIP: ${cfg.ip}\nUser: ${cfg.username}`);
   // Optionally, you can redirect to a new page here
-   window.location.href = 'success.html';
+  window.location.href = "success.html";
 });
 
 loadConfig();
