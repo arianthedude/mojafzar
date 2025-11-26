@@ -69,53 +69,58 @@ async function loadURLWithTimeout(view, url, timeout = 5000) {
 }
 
 ipcMain.handle("open-url", async (event, cfg) => {
-  const ip = cfg.ip;
-  const url = `http://${ip}:3000/s/?mmk&u=${encodeURIComponent(
+  const testUrl = `http://${cfg.ip}/s/?mmk&u=${encodeURIComponent(
+    cfg.username
+  )}&p=${encodeURIComponent(cfg.password)}`;
+
+  const finalUrl = `http://iptv.moojafzar.com/s/?mmk&u=${encodeURIComponent(
     cfg.username
   )}&p=${encodeURIComponent(cfg.password)}`;
 
   try {
+    // Remove old view if exists
     if (view) {
       if (!view.webContents.isDestroyed()) mainWindow.removeBrowserView(view);
       view = null;
     }
 
+    // Create hidden BrowserView just to test server response
     view = new BrowserView({
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
       },
     });
+
     mainWindow.setBrowserView(view);
+    view.setBounds({ x: 0, y: 0, width: 0, height: 0 }); // hidden
 
-    const [w, h] = mainWindow.getContentSize();
-    view.setBounds({ x: 0, y: 80, width: w, height: h - 80 });
-    view.setAutoResize({ width: true, height: true });
-
+    // Timeout + fail listener
     const failPromise = new Promise((_, reject) => {
-      view.webContents.once(
-        "did-fail-load",
-        (event, errorCode, errorDescription, validatedURL) => {
-          reject(
-            new Error(
-              `Failed to load ${validatedURL}: [${errorCode}] ${errorDescription}`
-            )
-          );
-        }
-      );
+      view.webContents.once("did-fail-load", (event, code, desc, url) => {
+        reject(new Error(`Failed to load server: ${desc}`));
+      });
     });
 
-    await Promise.race([loadURLWithTimeout(view, url, 5000), failPromise]);
+    // Try loading server URL
+    await Promise.race([
+      view.webContents.loadURL(testUrl),
+      failPromise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Server timeout after 5 seconds")), 5000)
+      ),
+    ]);
 
+    // Connection OK → remove BrowserView
     if (view && !view.webContents.isDestroyed()) {
       mainWindow.removeBrowserView(view);
       view = null;
     }
 
-    await mainWindow.loadFile(path.join(__dirname, "renderer", "success.html"));
-    mainWindow.webContents.send("show-success-screen", cfg);
+    // Now redirect the REAL window
+    await mainWindow.loadURL(finalUrl);
 
-    return { url };
+    return { ok: true, redirect: finalUrl };
   } catch (err) {
     console.error("Open URL error:", err);
 
@@ -124,22 +129,14 @@ ipcMain.handle("open-url", async (event, cfg) => {
       view = null;
     }
 
-    // Map common errors to custom messages
-    let message = err.message;
-    if (message.includes("ERR_CONNECTION_TIMED_OUT")) {
-      message = "Cannot connect to server. Check your IP and network.";
-    } else if (message.includes("ERR_NAME_NOT_RESOLVED")) {
-      message = "Server address could not be resolved.";
-    }
-
     await dialog.showMessageBox({
       type: "error",
       title: "Failed to open server",
-      message,
+      message: err.message,
       buttons: ["OK"],
     });
 
-    return { error: message };
+    return { error: err.message };
   }
 });
 
